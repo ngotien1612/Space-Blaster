@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Classic 2D Space Shooter Game - Destroy alien ships and score points!">
+  <title>🚀 Space Blaster — 2D Shooter</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="gameWrapper">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="uiOverlay">
+    <div id="scoreBoard">
+      SCORE
+      <span class="score-value" id="scoreValue">0</span>
+    </div>
+    <div id="creditsBoard">
+      🪙 VÀNG
+      <span class="credits-value" id="creditsValue">0</span>
+    </div>
+    <div id="waveInfo">
+      WAVE
+      <span class="wave-value" id="waveValue">1</span>
+      <div id="freezeHUD" class="hidden" style="color: #70e8ff; text-align: center; margin-top: 6px; font-size: 14px; font-weight: bold; text-shadow: 0 0 8px #70e8ff;">FROZEN: 0.0s</div>
+      <div id="rapidFireHUD" class="hidden" style="color: #ff007f; text-align: center; margin-top: 4px; font-size: 14px; font-weight: bold; text-shadow: 0 0 8px #ff007f;">RAPID FIRE: 0.0s</div>
+    </div>
+    <div id="livesBoard">
+      LIVES
+      <span class="lives-icons" id="livesIcons">🚀🚀🚀</span>
+    </div>
+    <div id="powerupBoard">
+      <div>MULTI-SHOT: <span id="multiShotHUD" class="hud-val" style="color: #ffe600;">LV.1</span></div>
+      <div style="margin-top: 6px;">DRONE: <span id="droneHUD" class="hud-val" style="color: #00ff88;">LV.1</span></div>
+    </div>
+    
+    <div id="fusionBoard" style="position: absolute; top: 180px; left: 20px; font-family: 'Orbitron', sans-serif; font-size: 16px;">
+       <div id="fusionGatling" class="hidden" style="color: #ffaa00; margin-bottom: 5px; animation: chroma 2s infinite;">⚡ GATLING PLASMA ⚡</div>
+       <div id="fusionCryo" class="hidden" style="color: #00ffff; margin-bottom: 5px; animation: chroma 2s infinite;">❄ CRYO DRONES ❄</div>
+       <div id="fusionAntimatter" class="hidden" style="color: #aa00ff; margin-bottom: 5px; animation: chroma 2s infinite;">🌌 ANTIMATTER BLASTER 🌌</div>
+    </div>
+  </div>
+
+  <!-- Start Screen -->
+  <div id="startScreen">
+    <h1>SPACE BLASTER</h1>
+    <div class="subtitle">— ULTIMATE EDITION —</div>
+    <div style="margin-bottom: 25px; display: flex; gap: 10px; align-items: center; color: #fff; font-size: 16px;">
+      ĐỒ HỌA:
+      <button class="btn-graphic" data-level="LOW">THẤP</button>
+      <button class="btn-graphic" data-level="MED">VỪA</button>
+      <button class="btn-graphic active" data-level="HIGH">CAO</button>
+    </div>
+    <div style="display: flex; gap: 20px; align-items: center; justify-content: center;">
+      <button class="btn-start" id="btnStageSelect">CHỌN ẢI</button>
+      <button class="btn-start" id="btnHangar" style="padding: 16px 30px; font-size: 16px; border-color: #00ffaa; color: #00ffaa; text-shadow: 0 0 10px rgba(0,255,170,0.5); box-shadow: 0 0 20px rgba(0,255,170,0.2);">PHI THUYỀN</button>
+      <button class="btn-start" id="btnUpgrades" style="padding: 16px 30px; font-size: 16px; border-color: #ffd700; color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); box-shadow: 0 0 20px rgba(255,215,0,0.2);">NÂNG CẤP</button>
+      <button class="btn-start" id="btnHelp" style="padding: 16px 30px; font-size: 16px;">HƯỚNG DẪN</button>
+    </div>
+  </div>
+
+  <!-- Stage Select Screen -->
+  <div id="stageScreen" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0, 10, 25, 0.95); backdrop-filter: blur(6px); z-index: 25; flex-direction: column; justify-content: center; align-items: center;">
+    <h2 style="font-family: 'Orbitron', sans-serif; font-size: 40px; color: #00ffff; margin-bottom: 30px; text-shadow: 0 0 15px rgba(0,255,255,0.5);">CHỌN ẢI</h2>
+    <div style="display: flex; gap: 20px;" id="stageGrid"></div>
+    <button class="btn-close-upgrade" id="btnCloseStage" style="margin-top: 40px;">QUAY LẠI</button>
+  </div>
+
+  <!-- Stage Clear Screen -->
+  <div id="stageClearScreen" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0, 10, 25, 0.85); backdrop-filter: blur(6px); z-index: 20; flex-direction: column; justify-content: center; align-items: center;">
+    <h1 style="font-family: 'Orbitron', sans-serif; font-size: 54px; color: #ffd700; text-shadow: 0 0 30px rgba(255,215,0,0.6); margin-bottom: 16px;">STAGE CLEAR</h1>
+    <div id="stageStars" style="font-size: 48px; color: #ffd700; margin-bottom: 20px; letter-spacing: 10px;">★★★</div>
+    <div style="font-family: 'Orbitron', sans-serif; font-size: 24px; color: #fff; margin-bottom: 10px;">VÀNG THU THẬP: <span id="stageCoinsEarned" style="color: #ffd700;">0</span> 🪙</div>
+    <div style="font-family: 'Orbitron', sans-serif; font-size: 24px; color: #fff; margin-bottom: 40px;">ĐIỂM: <span id="stageScoreText" style="color: #00ffff;">0</span></div>
+    
+    <div style="display: flex; gap: 20px;">
+      <button class="btn-restart" id="btnNextStage">CHƠI TIẾP (VÔ TẬN)</button>
+      <button class="btn-restart" id="btnStageClearMenu">VỀ MENU</button>
+    </div>
+  </div>
+
+  <!-- Pause Screen -->
+  <div id="pauseScreen" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0, 10, 25, 0.85); backdrop-filter: blur(6px); z-index: 30; flex-direction: column; justify-content: center; align-items: center;">
+    <h1 style="font-family: 'Orbitron', sans-serif; font-size: 54px; color: #00ffff; text-shadow: 0 0 30px rgba(0,255,255,0.6); margin-bottom: 20px;">TẠM DỪNG</h1>
+    <div style="font-family: 'Rajdhani', sans-serif; font-size: 20px; color: rgba(255,255,255,0.7); margin-bottom: 20px;">Nhấn P hoặc ESC để tiếp tục</div>
+    <div id="pauseGraphicText" style="font-family: 'Rajdhani', sans-serif; font-size: 16px; color: rgba(255,255,255,0.4); margin-bottom: 30px;">Đồ họa hiện tại: CAO (Nhấn 1: THẤP, 2: VỪA, 3: CAO)</div>
+    
+    <div style="display: flex; gap: 20px;">
+      <button class="btn-restart" id="btnResume">TIẾP TỤC</button>
+      <button class="btn-restart" id="btnHomeFromPause">VỀ MENU</button>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpModal">
+    <h2>HƯỚNG DẪN CHƠI</h2>
+    <div class="help-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div class="help-item" style="grid-column: span 2; border-color: #ff00ff;">
+        <strong style="color: #ff00ff;">TIẾN HÓA VŨ KHÍ (FUSION):</strong><br>
+        - Multi Lv5 + Rapid Fire = <span style="color:#ffaa00; animation: chroma 2s infinite;">Gatling Plasma</span> (Bão đạn quét 60 độ)<br>
+        - Drone Lv3 + Freeze = <span style="color:#00ffff; animation: chroma 2s infinite;">Cryo Drones</span> (Đạn làm chậm 60%)<br>
+        - Multi Lv5 + Nuke = <span style="color:#aa00ff; animation: chroma 2s infinite;">Phản Vật Chất</span> (Cầu đen hút & nghiền quái)
+      </div>
+      <div class="help-item" style="grid-column: span 2; border-color: #00ffff;">
+        <strong>ĐIỀU KHIỂN:</strong> Chuột (rê lái tàu, giữ trái bắn) hoặc Phím WASD/Mũi tên + Space.
+      </div>
+      <div class="help-item" style="grid-column: span 2; border-color: #ff3344;">
+        <strong>KẺ THÙ:</strong> <span style="color:#ffbb00">Bomber</span> (Nổ AoE) & <span style="color:#00ffaa">Super Tank</span> (Siêu trâu).
+      </div>
+      <div class="help-item" style="border-color: #ffe600;">
+        <strong style="color: #ffe600;">MULTI-SHOT:</strong> Tăng tia đạn (Max Lv5).
+      </div>
+      <div class="help-item" style="border-color: #00ff88;">
+        <strong style="color: #00ff88;">DRONE:</strong> Gọi tàu phụ (Max Lv3).
+      </div>
+      <div class="help-item" style="border-color: #ff007f;">
+        <strong style="color: #ff007f;">RAPID FIRE:</strong> Bắn liên thanh x5.
+      </div>
+      <div class="help-item" style="border-color: #70e8ff;">
+        <strong style="color: #70e8ff;">FREEZE:</strong> Đóng băng quái.
+      </div>
+      <div class="help-item" style="grid-column: span 2; border-color: #ff3700;">
+        <strong style="color: #ff3700;">NUKE:</strong> Hủy diệt toàn bộ kẻ thù tức thì.
+      </div>
+    </div>
+    <button class="btnClose" id="btnCloseHelp">ĐÃ HIỂU / ĐÓNG</button>
+  </div>
+
+  <!-- Hangar Screen -->
+  <div id="hangarScreen" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0, 10, 25, 0.95); backdrop-filter: blur(6px); z-index: 40; flex-direction: column; justify-content: center; align-items: center;">
+    <h2 style="font-family: 'Orbitron', sans-serif; font-size: 40px; color: #00ffaa; margin-bottom: 20px; text-shadow: 0 0 15px rgba(0,255,170,0.5);">XƯỞNG TÀU CHIẾN</h2>
+    <div style="text-align: center; color: #ffd700; font-family: 'Orbitron', sans-serif; font-size: 20px; margin-bottom: 30px;">
+      VÀNG HIỆN CÓ: <span id="hangarCreditsValue">0</span> 🪙
+    </div>
+    <div id="hangarGrid" style="display: flex; flex-direction: column; gap: 15px; width: 600px; max-width: 90%;"></div>
+    <button class="btn-close-upgrade" id="btnCloseHangar" style="margin-top: 30px;">QUAY LẠI</button>
+  </div>
+
+  <!-- Upgrades Modal -->
+  <div id="upgradesModal">
+    <h2>NÂNG CẤP TÀU</h2>
+    <div style="text-align: center; color: #ffd700; font-family: 'Orbitron', sans-serif; font-size: 20px; margin-bottom: 20px;">
+      VÀNG HIỆN CÓ: <span id="modalCreditsValue">0</span> 🪙
+    </div>
+    <div class="upgrade-item">
+      <div class="upgrade-info">
+        <strong>Gia cố giáp (+Mạng khởi đầu)</strong>
+        <span>Tăng mạng gốc khi bắt đầu trận (Tối đa: 5 mạng)</span>
+      </div>
+      <div>
+        <div id="livesUpgradeLvl" style="text-align: center; font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 5px; color: #fff;">LV.0</div>
+        <button class="btn-upgrade" id="btnUpgradeLives" data-type="lives">200 🪙</button>
+      </div>
+    </div>
+    <div class="upgrade-item">
+      <div class="upgrade-info">
+        <strong>Nam châm trọng lực</strong>
+        <span>Tăng bán kính tự động hút vàng & vật phẩm</span>
+      </div>
+      <div>
+        <div id="magnetUpgradeLvl" style="text-align: center; font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 5px; color: #fff;">LV.0</div>
+        <button class="btn-upgrade" id="btnUpgradeMagnet" data-type="magnet">100 🪙</button>
+      </div>
+    </div>
+    <div class="upgrade-item">
+      <div class="upgrade-info">
+        <strong>Tụ năng lượng (+Buff)</strong>
+        <span>Kéo dài thời gian tác dụng của Rapid Fire & Freeze</span>
+      </div>
+      <div>
+        <div id="buffUpgradeLvl" style="text-align: center; font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 5px; color: #fff;">LV.0</div>
+        <button class="btn-upgrade" id="btnUpgradeBuff" data-type="buff">150 🪙</button>
+      </div>
+    </div>
+    <button class="btn-close-upgrade" id="btnCloseUpgrades">QUAY LẠI</button>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen" class="hidden">
+    <h1>GAME OVER</h1>
+    <div class="final-score">Điểm: <span id="finalScore">0</span></div>
+    <div class="high-score" id="highScoreText">Kỷ lục: 0</div>
+    <button class="btn-restart" id="btnRestart">CHƠI LẠI</button>
+    <button class="btn-restart" id="btnMenuFromGameOver" style="margin-top: 15px;">VỀ MENU</button>
+  </div>
+</div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
