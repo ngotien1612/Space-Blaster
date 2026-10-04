@@ -1,6 +1,9 @@
 import { state, saveEconomy } from './state.js';
 import { CONFIG, SHIPS, UPGRADE_COSTS } from './config.js';
-import { startGame } from './game.js';
+
+// startGame is injected via setStartGameFn to avoid circular dependency
+let _startGame = null;
+export function setStartGameFn(fn) { _startGame = fn; }
 
 export const DOM = {
   gameWrapper: document.getElementById('gameWrapper'),
@@ -112,7 +115,7 @@ export function updateStageScreen() {
       btn.addEventListener('click', () => {
         state.currentStage = i;
         DOM.stageScreen.classList.add('hidden');
-        startGame();
+        if (_startGame) _startGame();
       });
     }
     DOM.stageGrid.appendChild(btn);

@@ -1,8 +1,8 @@
 import { state } from './state.js';
 import { CONFIG, UPGRADE_COSTS } from './config.js';
 import { canvas, ctx } from './canvas.js';
-import { DOM, applyGraphicsSetting, updateCreditsDisplay, updateUpgradesUI } from './ui.js';
-import { handleInput } from './input.js';
+import { DOM, applyGraphicsSetting, updateCreditsDisplay, updateUpgradesUI, updateStageScreen, updateHangar, setStartGameFn } from './ui.js';
+import { handleInput, togglePause } from './input.js';
 import { checkCollisions } from './collisions.js';
 import { drawPlayer, spawnBullet } from './entities.js';
 import { updatePowerUps, drawPowerUps } from './powerups.js';
@@ -12,8 +12,6 @@ import { spawnParticle, spawnExplosion, spawnFloatingText } from './utils.js';
 import { showStageClear, startGame, continueEndless } from './game.js';
 import { BOSS_TYPES, spawnEnemy } from './enemies.js';
 import { saveEconomy } from './state.js';
-import { updateStageScreen, updateHangar } from './ui.js';
-import { togglePause } from './input.js';
 
 // ==================== STAR BACKGROUND ====================
 function initStars() {
@@ -361,6 +359,9 @@ function gameLoop(timestamp) {
 }
 
 // ==================== INIT LISTENERS ====================
+// Inject startGame into ui.js to break circular dependency
+setStartGameFn(startGame);
+
 DOM.btnHelp.addEventListener('click', () => DOM.helpModal.classList.add('active'));
 DOM.btnCloseHelp.addEventListener('click', () => DOM.helpModal.classList.remove('active'));
 

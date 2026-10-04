@@ -4,7 +4,6 @@ import { updateScoreDisplay, updateLivesDisplay } from './ui.js';
 import { spawnPowerUp } from './powerups.js';
 import { spawnCoins } from './coins.js';
 import { gameOver } from './game.js';
-import { triggerAoE } from './collisions.js';
 
 // Forward-declared to avoid circular issues — actual impl below
 export function triggerBossDeath(e) {
