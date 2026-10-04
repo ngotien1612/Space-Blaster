@@ -10,7 +10,7 @@ import { updateCoins, drawCoins } from './coins.js';
 import { updateEnemyBullets, drawEnemyBullets, updateWave, updateEnemies, drawBossHUD, updateBullets, drawBullets, drawEnemies, drawAntimatterOrbs, updateAntimatterOrbs } from './loop.js';
 import { spawnParticle, spawnExplosion, spawnFloatingText } from './utils.js';
 import { showStageClear } from './game.js';
-import { startGame } from './game.js'; // to ensure it can be triggered
+import { startGame, continueEndless } from './game.js'; // to ensure it can be triggered
 import { BOSS_TYPES } from './enemies.js';
 
 // ==================== STAR BACKGROUND ====================
@@ -314,7 +314,7 @@ import('./ui.js').then(module => {
   DOM.btnRestart.addEventListener('click', startGame);
   DOM.btnNextStage.addEventListener('click', () => {
     state.currentStage++;
-    startGame();
+    continueEndless();
   });
   DOM.btnStageClearMenu.addEventListener('click', () => {
     DOM.stageClearScreen.classList.add('hidden');

@@ -71,6 +71,34 @@ export function startGame() {
   DOM.gameWrapper.style.cursor = state.isMouseDown ? 'none' : 'crosshair';
 }
 
+export function continueEndless() {
+  state.stageClear = false;
+  state.bossActive = false; 
+  state.boss = null; 
+  state.bossDeathTimer = 0; 
+  
+  state.enemyBullets = [];
+  state.enemies = [];
+  state.powerUps = [];
+  state.coins = [];
+  state.particles = [];
+  
+  state.coinsEarnedInStage = 0;
+  state.livesLostInStage = 0;
+  
+  state.wave = 1;
+  state.waveTimer = 0;
+  state.enemySpawnTimer = 0;
+  
+  DOM.stageClearScreen.classList.add('hidden');
+  DOM.stageClearScreen.style.display = 'none';
+  
+  state.gameRunning = true; 
+  state.gamePaused = false;
+  DOM.gameWrapper.style.cursor = state.isMouseDown ? 'none' : 'crosshair';
+  DOM.waveValueEl.textContent = '1';
+}
+
 export function gameOver() {
   state.gameRunning = false;
   state.isMouseDown = false;

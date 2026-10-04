@@ -2,6 +2,7 @@ import { state, saveEconomy } from './state.js';
 import { ctx } from './canvas.js';
 import { CONFIG } from './config.js';
 import { spawnFloatingText, spawnParticle } from './utils.js';
+import { updateCreditsDisplay } from './ui.js';
 
 export function spawnCoins(x, y) {
   const count = Math.floor(Math.random() * 3) + 1;
@@ -37,6 +38,7 @@ export function updateCoins() {
       state.totalCredits++;
       state.coinsEarnedInStage++;
       saveEconomy();
+      updateCreditsDisplay();
       spawnFloatingText(c.x, c.y, "+1 C", '#ffd700');
       spawnParticle(c.x, c.y, { vx: 0, vy: -1, life: 15, size: 2, color: '255, 215, 0' });
       state.coins.splice(i, 1);
