@@ -4,7 +4,7 @@ import { ctx } from './canvas.js';
 import { spawnFloatingText, spawnParticle, spawnExplosion, hexToRgb } from './utils.js';
 import { spawnEnemyType, spawnEnemy, BOSS_TYPES } from './enemies.js';
 import { createBullet } from './entities.js';
-import { playerTakeDamage } from './collisions.js';
+import { playerTakeDamage, triggerAoE } from './collisions.js';
 import { DOM } from './ui.js';
 
 export function createEnemyBullet(x, y, angle, speed, color = '#ff0000') {
@@ -32,10 +32,33 @@ export function updateEnemyBullets() {
 }
 
 export function drawEnemyBullets() {
-  for (let b of state.enemyBullets) {
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
-    ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 10; ctx.fill();
+  for (const b of state.enemyBullets) {
+    // Trail
+    const angle = Math.atan2(b.vy, b.vx);
+    const trailLen = 14;
+    const tg = ctx.createLinearGradient(
+      b.x - Math.cos(angle) * trailLen, b.y - Math.sin(angle) * trailLen,
+      b.x, b.y
+    );
+    tg.addColorStop(0, 'rgba(255,0,80,0)');
+    tg.addColorStop(1, 'rgba(255,0,80,0.7)');
+    ctx.beginPath();
+    ctx.lineWidth = b.size * 1.5;
+    ctx.strokeStyle = tg;
+    ctx.moveTo(b.x - Math.cos(angle) * trailLen, b.y - Math.sin(angle) * trailLen);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    // Core
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+    ctx.fillStyle = b.color;
+    if (CONFIG.GLOW_ENABLED) { ctx.shadowColor = b.color; ctx.shadowBlur = 12; }
+    ctx.fill();
     ctx.shadowBlur = 0;
+
+    // Bright center
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff'; ctx.fill();
   }
 }
 
@@ -143,26 +166,69 @@ export function updateEnemies(dt) {
 
 export function drawBossHUD() {
   if (!state.boss) return;
-  const hpRatio = state.boss.hp / state.boss.maxHp;
-  const w = 600;
-  const h = 20;
+  const hpRatio = Math.max(0, state.boss.hp / state.boss.maxHp);
+  const w = 640;
+  const h = 22;
   const x = CONFIG.WIDTH / 2 - w / 2;
-  const y = 20;
+  const y = 18;
+  const isPhase2 = state.boss.phase === 2;
+  const barColor = isPhase2 ? '#ff0000' : '#ff0055';
 
-  ctx.fillStyle = 'rgba(0,0,0,0.8)';
-  ctx.fillRect(x, y, w, h);
-  
-  ctx.fillStyle = state.boss.phase === 2 ? '#ff0000' : '#ff0055';
-  ctx.fillRect(x, y, w * hpRatio, h);
-  
-  ctx.strokeStyle = '#fff';
+  // Background track
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 4);
+  ctx.fill();
+
+  // Fill bar
+  if (hpRatio > 0) {
+    const barGrad = ctx.createLinearGradient(x, y, x + w, y);
+    barGrad.addColorStop(0, isPhase2 ? '#ff4400' : '#ff0055');
+    barGrad.addColorStop(0.5, isPhase2 ? '#ff0000' : '#cc0040');
+    barGrad.addColorStop(1, isPhase2 ? '#880000' : '#660022');
+    ctx.fillStyle = barGrad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w * hpRatio, h, 3);
+    ctx.fill();
+  }
+
+  // Sheen highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(x, y, w * hpRatio, h / 2);
+
+  // Phase separator line at 50%
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.5, y); ctx.lineTo(x + w * 0.5, y + h);
+  ctx.stroke();
+
+  // Border
+  ctx.strokeStyle = isPhase2 ? '#ff4400' : '#ff5588';
   ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
-  
-  ctx.font = 'bold 16px Orbitron';
-  ctx.fillStyle = '#fff';
+  if (CONFIG.GLOW_ENABLED) { ctx.shadowColor = barColor; ctx.shadowBlur = 12; }
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 3);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Boss name
+  ctx.font = 'bold 13px Orbitron, sans-serif';
+  ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
-  ctx.fillText(state.boss.type.name, CONFIG.WIDTH / 2, y + 15);
+  ctx.shadowColor = barColor; ctx.shadowBlur = 6;
+  ctx.fillText(
+    isPhase2 ? `☠ ${state.boss.type.name} — PHASE II ☠` : `⚡ ${state.boss.type.name}`,
+    CONFIG.WIDTH / 2,
+    y + h + 14
+  );
+  ctx.shadowBlur = 0;
+
+  // HP number
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${state.boss.hp} / ${state.boss.maxHp}`, x + w - 4, y + h - 5);
 }
 
 export function updateBullets() {
@@ -181,27 +247,52 @@ export function drawBullets() {
     ctx.translate(b.x, b.y);
     ctx.rotate(b.angle);
 
-    const color = b.isDrone ? (state.isCryoFusion ? 'rgba(0, 255, 255,' : 'rgba(255, 0, 255,') : 
-                  b.type === 'pierce' ? 'rgba(0, 255, 170,' : 
-                  b.type === 'aoe' ? 'rgba(255, 170, 0,' : 
-                  b.type === 'cryo' ? 'rgba(0, 255, 255,' : 'rgba(0, 255, 255,';
-    
-    const trailGrad = ctx.createLinearGradient(0, b.height, 0, -12);
-    trailGrad.addColorStop(0, color + ' 0)');
-    trailGrad.addColorStop(1, color + ' 0.9)');
-    ctx.fillStyle = trailGrad;
-    ctx.fillRect(-1.5, 0, 3, b.height + 12);
+    // Choose color per bullet type
+    let coreColor, glowColor;
+    if (b.isDrone && state.isCryoFusion) {
+      coreColor = '#00ffff'; glowColor = 'rgba(0,255,255,';
+    } else if (b.isDrone) {
+      coreColor = '#ff00ff'; glowColor = 'rgba(255,0,255,';
+    } else if (b.type === 'pierce') {
+      coreColor = '#00ffaa'; glowColor = 'rgba(0,255,170,';
+    } else if (b.type === 'aoe') {
+      coreColor = '#ffaa00'; glowColor = 'rgba(255,170,0,';
+    } else if (b.type === 'cryo') {
+      coreColor = '#88eeff'; glowColor = 'rgba(100,220,255,';
+    } else {
+      coreColor = '#00e5ff'; glowColor = 'rgba(0,220,255,';
+    }
 
-    ctx.fillStyle = '#ffffff';
+    // Trail gradient (bottom to top)
+    const trailGrad = ctx.createLinearGradient(0, b.height + 16, 0, -4);
+    trailGrad.addColorStop(0, glowColor + '0)');
+    trailGrad.addColorStop(1, glowColor + '0.85)');
+    ctx.fillStyle = trailGrad;
+    ctx.fillRect(-2, -4, 4, b.height + 20);
+
+    // Main bullet body
+    ctx.fillStyle = coreColor;
     ctx.fillRect(-b.width / 2, 0, b.width, b.height);
 
+    // Bright core stripe
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(-0.8, 2, 1.6, b.height - 4);
+
+    // Tip flare
     if (CONFIG.GLOW_ENABLED) {
-      ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2);
-      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 7);
-      glow.addColorStop(0, color + ' 0.5)'); glow.addColorStop(1, color + ' 0)');
-      ctx.fillStyle = glow; ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, 0, b.width + 3, 0, Math.PI * 2);
+      const tipGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, b.width + 3);
+      tipGrad.addColorStop(0, glowColor + '0.7)');
+      tipGrad.addColorStop(1, glowColor + '0)');
+      ctx.fillStyle = tipGrad;
+      ctx.fill();
+      ctx.shadowColor = coreColor; ctx.shadowBlur = 10;
+      ctx.fillStyle = coreColor;
+      ctx.beginPath(); ctx.arc(0, 0, b.width * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
     }
-    
+
     ctx.restore();
   }
 }
@@ -231,23 +322,54 @@ export function drawEnemies() {
 }
 
 export function drawAntimatterOrbs() {
-  for (let orb of state.antimatterOrbs) {
-    ctx.beginPath();
-    ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI*2);
-    ctx.fillStyle = '#000000';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#aa00ff';
-    ctx.stroke();
-    
+  const t = Date.now() * 0.003;
+  for (const orb of state.antimatterOrbs) {
     ctx.save();
     ctx.translate(orb.x, orb.y);
-    ctx.rotate(Date.now() * 0.01);
+
+    // Accretion disk glow
+    if (CONFIG.GLOW_ENABLED) {
+      const diskGrad = ctx.createRadialGradient(0, 0, orb.radius * 0.5, 0, 0, orb.radius * 2.5);
+      diskGrad.addColorStop(0, 'rgba(150,0,255,0.35)');
+      diskGrad.addColorStop(0.5, 'rgba(80,0,180,0.15)');
+      diskGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = diskGrad;
+      ctx.beginPath(); ctx.arc(0, 0, orb.radius * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Core void
+    ctx.beginPath(); ctx.arc(0, 0, orb.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#000000'; ctx.fill();
+    ctx.strokeStyle = '#9900ff'; ctx.lineWidth = 2;
+    if (CONFIG.GLOW_ENABLED) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 20; }
+    ctx.stroke(); ctx.shadowBlur = 0;
+
+    // Inner event horizon ring
+    ctx.beginPath(); ctx.arc(0, 0, orb.radius * 0.6, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(200,0,255,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Rotating energy arms
+    ctx.save();
+    ctx.rotate(t * 2.5);
+    ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 4; i++) {
+      const a = (Math.PI / 2) * i;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * orb.radius, Math.sin(a) * orb.radius);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Counter-rotating ring
+    ctx.save();
+    ctx.rotate(-t * 1.5);
     ctx.beginPath();
-    ctx.moveTo(-15, 0); ctx.lineTo(15, 0);
-    ctx.moveTo(0, -15); ctx.lineTo(0, 15);
-    ctx.strokeStyle = '#ff00ff';
-    ctx.stroke();
+    ctx.arc(0, 0, orb.radius + 5, 0, Math.PI * 1.3);
+    ctx.strokeStyle = 'rgba(200,100,255,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+
     ctx.restore();
   }
 }
@@ -279,12 +401,7 @@ export function updateAntimatterOrbs() {
     
     if (orb.life <= 0) {
        spawnExplosion(orb.x, orb.y, '170, 0, 255', 60, 2);
-       // We'll need to triggerAoE, which is in collisions.js
-       // We can dynamically import or pass it
-       // Actually triggerAoE is in collisions, which is imported in loop.js? No.
-       import('./collisions.js').then(module => {
-          module.triggerAoE(orb.x, orb.y, 100, 5); 
-       });
+       triggerAoE(orb.x, orb.y, 100, 5);
        state.antimatterOrbs.splice(i, 1);
     }
   }
