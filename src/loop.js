@@ -1,8 +1,8 @@
 import { state } from './state.js';
-import { CONFIG, BOSS_TYPES } from './config.js';
+import { CONFIG } from './config.js';
 import { ctx } from './canvas.js';
 import { spawnFloatingText, spawnParticle, spawnExplosion, hexToRgb } from './utils.js';
-import { spawnEnemyType, spawnEnemy } from './enemies.js';
+import { spawnEnemyType, spawnEnemy, BOSS_TYPES } from './enemies.js';
 import { createBullet } from './entities.js';
 import { playerTakeDamage } from './collisions.js';
 import { DOM } from './ui.js';

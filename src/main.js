@@ -11,6 +11,7 @@ import { updateEnemyBullets, drawEnemyBullets, updateWave, updateEnemies, drawBo
 import { spawnParticle, spawnExplosion, spawnFloatingText } from './utils.js';
 import { showStageClear } from './game.js';
 import { startGame } from './game.js'; // to ensure it can be triggered
+import { BOSS_TYPES } from './enemies.js';
 
 // ==================== STAR BACKGROUND ====================
 function initStars() {

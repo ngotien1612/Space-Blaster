@@ -1,5 +1,5 @@
 import { state, saveEconomy } from './state.js';
-import { CONFIG, ENEMY_TYPES, BOSS_TYPES } from './config.js';
+import { CONFIG } from './config.js';
 import { ctx } from './canvas.js';
 import { spawnParticle, drawHPBar, spawnFloatingText, hexToRgb, spawnExplosion } from './utils.js';
 import { updateScoreDisplay, updateLivesDisplay, DOM } from './ui.js';
